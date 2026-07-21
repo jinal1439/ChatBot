@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AI Chatbot</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  :root{
+    --bg-1:#12141c;
+    --bg-2:#1b1e2b;
+    --panel:#20232f;
+    --bubble-bot:#2a2e3d;
+    --bubble-user:#17b892;
+    --accent:#7c8cff;
+    --text:#eef0f6;
+    --muted:#9aa0b4;
+    --border:#2f3345;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(124,140,255,0.15), transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(23,184,146,0.12), transparent 40%),
+      var(--bg-1);
+    font-family:'Segoe UI', system-ui, -apple-system, sans-serif;
+    padding:24px;
+  }
+  .app{
+    width:100%;
+    max-width:460px;
+    background:var(--bg-2);
+    border-radius:20px;
+    border:1px solid var(--border);
+    box-shadow:0 30px 60px -20px rgba(0,0,0,0.6);
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    height:640px;
+  }
+  .header{
+    background:var(--panel);
+    padding:20px 22px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    border-bottom:1px solid var(--border);
+  }
+  .header .avatar{
+    width:38px;height:38px;
+    border-radius:10px;
+    background:linear-gradient(135deg,var(--accent),#4b5bd6);
+    display:flex;align-items:center;justify-content:center;
+    font-size:20px;
+  }
+  .header h1{
+    font-size:17px;
+    margin:0;
+    color:var(--text);
+    letter-spacing:.2px;
+  }
+  .header p{
+    margin:2px 0 0;
+    font-size:12px;
+    color:var(--muted);
+  }
+  .status-dot{
+    width:8px;height:8px;border-radius:50%;
+    background:#17b892;
+    box-shadow:0 0 0 3px rgba(23,184,146,0.2);
+    margin-left:auto;
+  }
+  .chat{
+    flex:1;
+    padding:20px;
+    overflow-y:auto;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .chat::-webkit-scrollbar{width:6px;}
+  .chat::-webkit-scrollbar-thumb{background:#3a3f52;border-radius:3px;}
+
+  .msg{
+    max-width:80%;
+    padding:12px 16px;
+    border-radius:16px;
+    font-size:14.5px;
+    line-height:1.45;
+    animation:pop .18s ease;
+  }
+  @keyframes pop{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+  .msg.bot{
+    background:var(--bubble-bot);
+    color:var(--text);
+    align-self:flex-start;
+    border-bottom-left-radius:4px;
+  }
+  .msg.user{
+    background:var(--bubble-user);
+    color:#062b22;
+    font-weight:500;
+    align-self:flex-end;
+    border-bottom-right-radius:4px;
+  }
+  .msg.typing{
+    display:flex;
+    gap:4px;
+    align-items:center;
+    padding:14px 16px;
+  }
+  .msg.typing span{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--muted);
+    animation:blink 1.2s infinite ease-in-out;
+  }
+  .msg.typing span:nth-child(2){animation-delay:.15s;}
+  .msg.typing span:nth-child(3){animation-delay:.3s;}
+  @keyframes blink{0%,80%,100%{opacity:.25;}40%{opacity:1;}}
+
+  .suggestions-toggle{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:10px 20px;
+    border-top:1px solid var(--border);
+    background:var(--panel);
+    cursor:pointer;
+    user-select:none;
+  }
+  .suggestions-toggle span.label{
+    font-size:12.5px;
+    color:var(--muted);
+    font-weight:600;
+    letter-spacing:.3px;
+  }
+  .suggestions-toggle .arrow{
+    color:var(--muted);
+    transition:transform .2s;
+    font-size:12px;
+  }
+  .suggestions-toggle.open .arrow{
+    transform:rotate(180deg);
+  }
+  .suggestions{
+    max-height:0;
+    overflow-y:auto;
+    transition:max-height .25s ease;
+    display:grid;
+    grid-template-columns:1fr;
+    gap:7px;
+    padding:0 20px;
+    background:var(--panel);
+  }
+  .suggestions.open{
+    max-height:220px;
+    padding:10px 20px 14px;
+  }
+  .suggestions::-webkit-scrollbar{width:6px;}
+  .suggestions::-webkit-scrollbar-thumb{background:#3a3f52;border-radius:3px;}
+  .chip{
+    background:var(--bg-1);
+    border:1px solid var(--border);
+    color:var(--muted);
+    padding:9px 13px;
+    border-radius:10px;
+    font-size:12.5px;
+    cursor:pointer;
+    text-align:left;
+    transition:.15s;
+  }
+  .chip:hover{
+    border-color:var(--accent);
+    color:var(--text);
+    background:#242838;
+  }
+
+  .input-row{
+    display:flex;
+    gap:10px;
+    padding:16px 18px;
+    border-top:1px solid var(--border);
+    background:var(--panel);
+  }
+  .input-row input{
+    flex:1;
+    background:var(--bg-1);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:12px 14px;
+    border-radius:12px;
+    font-size:14px;
+    outline:none;
+  }
+  .input-row input:focus{border-color:var(--accent);}
+  .input-row button{
+    background:var(--bubble-user);
+    border:none;
+    color:#062b22;
+    font-weight:700;
+    padding:0 20px;
+    border-radius:12px;
+    cursor:pointer;
+    font-size:14px;
+    transition:.15s;
+  }
+  .input-row button:hover{filter:brightness(1.08);}
+  .input-row button:active{transform:scale(.97);}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <div class="avatar">🤖</div>
+    <div>
+      <h1>Chatbot</h1>
+      <p>Trained on 30 AI &amp; Python topics</p>
+    </div>
+    <div class="status-dot"></div>
+  </div>
+
+  <div class="chat" id="chat">
+    <div class="msg bot">Hello! 👋 Ask me anything about AI, ML, or Python.</div>
+  </div>
+
+  <div class="suggestions-toggle" id="suggestionsToggle">
+    <span class="label">💡 Ask your question from these <span id="qCount">0</span> topics</span>
+    <span class="arrow">▾</span>
+  </div>
+  <div class="suggestions" id="suggestions"></div>
+
+  <div class="input-row">
+    <input type="text" id="userInput" placeholder="Type your question..." autocomplete="off">
+    <button id="sendBtn">Send</button>
+  </div>
+</div>
+
+<script>
+// ---------- DATA ----------
+const QUESTIONS = [
+"What is Artificial Intelligence?","What is Machine Learning?","What is Deep Learning?",
+"What is Python?","Who developed Python?","What is TensorFlow?","What is Keras?",
+"What is NumPy?","What is Pandas?","What is Matplotlib?","What is OpenCV?",
+"What is Natural Language Processing?","What is a Neural Network?","What is a Dataset?",
+"What is Training Data?","What is Testing Data?","What is an Epoch?","What is Batch Size?",
+"What is Learning Rate?","What is Overfitting?","What is Underfitting?","What is Classification?",
+"What is Regression?","What is Clustering?","What is Data Science?","What is SQL?",
+"What is JSON?","What is an API?","What is Git?","What is Streamlit?"
+];
+
+const ANSWERS = [
+"Artificial Intelligence is the field of creating computer systems that can perform tasks requiring human intelligence.",
+"Machine Learning is a branch of AI that enables computers to learn patterns from data.",
+"Deep Learning is a subset of Machine Learning that uses neural networks with multiple layers.",
+"Python is a high-level programming language known for its simplicity and versatility.",
+"Python was developed by Guido van Rossum.",
+"TensorFlow is an open-source library used for machine learning and deep learning.",
+"Keras is a high-level API for building and training neural network models.",
+"NumPy is a Python library used for numerical and mathematical operations.",
+"Pandas is a Python library used for data analysis and manipulation.",
+"Matplotlib is a Python library used for creating graphs and visualizations.",
+"OpenCV is an open-source library used for computer vision and image processing.",
+"Natural Language Processing is the field of AI that enables computers to understand and process human language.",
+"A Neural Network is a computational model inspired by the human brain for learning patterns.",
+"A Dataset is a collection of data used for analysis or model training.",
+"Training Data is the data used to teach a machine learning model.",
+"Testing Data is the data used to evaluate a trained machine learning model.",
+"An Epoch is one complete pass of the training dataset through the model.",
+"Batch Size is the number of training samples processed before updating the model.",
+"Learning Rate determines how much the model's weights are updated during training.",
+"Overfitting occurs when a model learns the training data too well and performs poorly on new data.",
+"Underfitting occurs when a model fails to learn the patterns in the training data.",
+"Classification is a machine learning task that predicts categories or class labels.",
+"Regression is a machine learning task used to predict continuous numerical values.",
+"Clustering is an unsupervised learning technique that groups similar data points.",
+"Data Science is the process of extracting meaningful insights from data.",
+"SQL is a programming language used to manage and query relational databases.",
+"JSON is a lightweight format used for storing and exchanging structured data.",
+"An API is an Application Programming Interface that allows software applications to communicate with each other.",
+"Git is a version control system used to track changes in source code.",
+"Streamlit is a Python framework used to build interactive web applications for data science and machine learning."
+];
+
+const STOP_WORDS = new Set(["what","is","a","an","the","who","developed","of","was","for","to","in","and"]);
+
+function normalize(str){
+  return str.toLowerCase().replace(/[^\w\s]/g,"").trim();
+}
+
+function tokenize(str){
+  return normalize(str).split(/\s+/).filter(w => w && !STOP_WORDS.has(w));
+}
+
+// Find the best matching question index using keyword overlap scoring
+function findBestMatch(userText){
+  const userTokens = tokenize(userText);
+  if(userTokens.length === 0) return -1;
+
+  let bestIndex = -1;
+  let bestScore = 0;
+
+  QUESTIONS.forEach((q, i) => {
+    const qTokens = tokenize(q);
+    let score = 0;
+    userTokens.forEach(ut => {
+      qTokens.forEach(qt => {
+        if(ut === qt) score += 2;
+        else if(qt.includes(ut) || ut.includes(qt)) score += 1;
+      });
+    });
+    // bonus for exact normalized match
+    if(normalize(userText) === normalize(q)) score += 10;
+
+    if(score > bestScore){
+      bestScore = score;
+      bestIndex = i;
+    }
+  });
+
+  // require a minimal confidence threshold
+  return bestScore >= 2 ? bestIndex : -1;
+}
+
+// ---------- UI ----------
+const chat = document.getElementById("chat");
+const input = document.getElementById("userInput");
+const sendBtn = document.getElementById("sendBtn");
+const suggestionsBar = document.getElementById("suggestions");
+
+function addMessage(text, sender){
+  const div = document.createElement("div");
+  div.className = "msg " + sender;
+  div.textContent = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  return div;
+}
+
+function showTyping(){
+  const div = document.createElement("div");
+  div.className = "msg bot typing";
+  div.innerHTML = "<span></span><span></span><span></span>";
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  return div;
+}
+
+function respond(userText){
+  addMessage(userText, "user");
+  input.value = "";
+  const typingEl = showTyping();
+
+  setTimeout(() => {
+    typingEl.remove();
+    const idx = findBestMatch(userText);
+    if(idx !== -1){
+      addMessage(ANSWERS[idx], "bot");
+    } else {
+      addMessage("I don't have an answer for that yet. Try asking about AI, Python, or ML topics 🙂", "bot");
+    }
+  }, 500 + Math.random()*400);
+}
+
+sendBtn.addEventListener("click", () => {
+  const val = input.value.trim();
+  if(val) respond(val);
+});
+
+input.addEventListener("keydown", (e) => {
+  if(e.key === "Enter"){
+    const val = input.value.trim();
+    if(val) respond(val);
+  }
+});
+
+// render ALL questions as clickable buttons
+function loadSuggestions(){
+  document.getElementById("qCount").textContent = QUESTIONS.length;
+  QUESTIONS.forEach(q => {
+    const chip = document.createElement("div");
+    chip.className = "chip";
+    chip.textContent = q;
+    chip.onclick = () => respond(q);
+    suggestionsBar.appendChild(chip);
+  });
+}
+loadSuggestions();
+
+// toggle open/close for the question list
+const toggle = document.getElementById("suggestionsToggle");
+toggle.addEventListener("click", () => {
+  toggle.classList.toggle("open");
+  suggestionsBar.classList.toggle("open");
+});
+</script>
+</body>
+</html>
